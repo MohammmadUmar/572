@@ -79,3 +79,15 @@ mean(test$Target != pred_test2)
 
 ## next step- Check with validation data set as well--
 summary(mytree)
+
+###############\
+#DECISION RULES:
+#mytree Rule 52
+#If ShelveLoc = Medium or Bad and and Price < 105.5 and CompPrice < 124.5 and Price < 92.5 then Sales is high
+#Support
+20/325
+# 0.061
+
+#Confidence
+16/20
+# 0.80
