@@ -1,4 +1,4 @@
-# 572
+# IDS 572
 ♥️ Milestone: Understand the data science concepts and applications. Using R Programming.
 
 🎯 Assignment 1 (Supervised Learning, Part 1)
