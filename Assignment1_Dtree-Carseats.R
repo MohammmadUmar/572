@@ -61,10 +61,10 @@ mytree2<- rpart(myFormula, data = train, parms = list(split = "information"),
                control = rpart.control(minsplit = 10, minbucket = 5, cp = -1))
 # minisplit== cannot split unless there are these many instances. Minimum instances to split further
 # minibucket== minimum instances in the terminal node
-# Cp parameter = 
+# Cp parameter = -1 meaning tree grows to full (for every new addition of terminal node the error goes down hence
+# tree grows full. Error = X + #terminalnodes*Cp)
 
 rpart.plot(mytree2)
-
 
 # performance on test and train
 
@@ -76,6 +76,10 @@ mean(train$Target !=pred_train2)
 
 pred_test2<-predict(mytree2, newdata = test, type = "class")
 mean(test$Target != pred_test2)
+
+#
+# Grow tree fully- overfit, don't let tree grow- underfit
+# Find the sweet spot with a balance
 
 ## next step- Check with validation data set as well--
 summary(mytree)
