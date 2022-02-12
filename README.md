@@ -6,6 +6,6 @@ Objective:
 
 Understand dataset and Visualize the data using R Programming
 
-Be able to perform Exploratory Data Analysis (EAD), Missing Value Handling, Data Leakage and Correlations
+Be able to perform Exploratory Data Analysis (EDA), Missing Value Handling, Data Leakage and Correlations
 
 Create Decision Tree, indentify the best tree model based on performance
