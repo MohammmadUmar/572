@@ -95,3 +95,20 @@ summary(mytree)
 #Confidence
 16/20
 # 0.80
+
+### FURTHER ANALYSIS FOR BEST CP VALUE####
+printcp(mytree)
+plotcp(mytree)
+
+## SWEET Cp####
+mytree$cptable
+
+opt<-which.min(mytree$cptable[,"xerror"]) # Takes row index of minimum of xerror
+
+cp<-mytree$cptable[opt, "CP"] #Gets Cp value for that row index
+cp
+
+prunedTree<-prune(mytree, cp = cp) # Uses the cp from above to prune the tree
+
+print(prunedTree)
+rpart.plot(prunedTree)
