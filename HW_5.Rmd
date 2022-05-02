@@ -1,0 +1,1408 @@
+---
+title: "HW_5"
+output:
+  word_document: default
+  html_document: default
+---
+
+### EDA and DATA VISUALIZATION ####
+
+## Importing the Raw data 
+```{r}
+library(readxl)
+RawDataBoth <- read_excel("carpets.xlsx", 
+    sheet = "Raw Data-Order and Sample")
+#View(RawDataBoth)
+```
+
+```{r}
+#attach(sample_csv)
+library(rpart)
+library(rpart.plot)
+library(tidyverse)
+library(pivottabler)
+library(C50)
+```
+
+## changing to categorical variables
+```{r}
+RawDataBoth$OrderType<-as.factor(RawDataBoth$OrderType)
+RawDataBoth$OrderCategory<-as.factor(RawDataBoth$OrderCategory)
+RawDataBoth$CustomerCode<-as.factor(RawDataBoth$CustomerCode)
+RawDataBoth$CountryName<-as.factor(RawDataBoth$CountryName)
+RawDataBoth$CustomerOrderNo<-as.factor(RawDataBoth$CustomerOrderNo)
+RawDataBoth$UnitName<-as.factor(RawDataBoth$UnitName)
+RawDataBoth$ITEM_NAME<-as.factor(RawDataBoth$ITEM_NAME)
+RawDataBoth$QualityName<-as.factor(RawDataBoth$QualityName)
+RawDataBoth$DesignName<-as.factor(RawDataBoth$DesignName)
+RawDataBoth$ColorName<-as.factor(RawDataBoth$ColorName)
+RawDataBoth$ShapeName<-as.factor(RawDataBoth$ShapeName)
+RawDataBoth$Custorderdate<-as.Date(RawDataBoth$Custorderdate, format = "%m/%d/%y")
+```
+
+## 
+```{r}
+lapply(RawDataBoth,FUN=summary)
+summary(RawDataBoth)
+str(RawDataBoth)
+```
+
+## Order Category Analysis by Year *** NEED TO FIX***
+```{r}
+RawDataBoth$CustOrderYear<-format(RawDataBoth$Custorderdate,  "%Y")
+pt <-PivotTable$new()
+pt$addData(RawDataBoth)
+pt$addColumnDataGroups("OrderCategory")
+pt$addRowDataGroups("CustOrderYear")
+pt$defineCalculation(calculationName = "Total", summariseExpression = "n()")
+#pt$sortColumnDataGroups(sortOrder= "desc")
+pt$sortRowDataGroups(orderBy = "caption")
+pt$evaluatePivot()
+pt_df <-pt$asDataFrame()
+pt_df
+#pt_df$Order_Percentage <- 100*pt_df$Order/pt_df$Total
+pt_df
+```
+
+## Order Category Analysis by Country
+```{r}
+pt <-PivotTable$new()
+pt$addData(RawDataBoth)
+pt$addColumnDataGroups("OrderCategory")
+pt$addRowDataGroups("CountryName")
+pt$defineCalculation(calculationName = "Total", summariseExpression = "n()")
+#pt$sortColumnDataGroups(sortOrder= "desc")
+pt$sortRowDataGroups(orderBy = "calculation")
+pt$evaluatePivot()
+pt_df <-pt$asDataFrame()
+pt_df
+pt_df$Order_Percentage <- 100*pt_df$Order/pt_df$Total
+pt_df
+```
+
+## Item Order Analysis by Country
+```{r}
+pt <-PivotTable$new()
+pt$addData(RawDataBoth)
+pt$addColumnDataGroups("ITEM_NAME")
+pt$addRowDataGroups("CountryName")
+pt$defineCalculation(calculationName = "Total", summariseExpression = "n()")
+#pt$sortColumnDataGroups(sortOrder= "desc")
+pt$sortRowDataGroups(orderBy = "calculation")
+pt$evaluatePivot()
+pt_df <-pt$asDataFrame()
+pt_df
+```
+##  Order Amount Analysis by Country
+```{r}
+pt <-PivotTable$new()
+pt$addData(RawDataBoth)
+pt$addColumnDataGroups("OrderCategory")
+pt$addRowDataGroups("CountryName")
+pt$defineCalculation(calculationName = "Total", summariseExpression = "sum(Amount)")
+#pt$sortColumnDataGroups(sortOrder= "desc")
+pt$sortRowDataGroups(orderBy = "calculation")
+pt$evaluatePivot()
+pt_df <-pt$asDataFrame()
+pt_df
+pt_df
+```
+## Order Category Analysis by Customer
+```{r}
+pt <-PivotTable$new()
+pt$addData(RawDataBoth)
+pt$addColumnDataGroups("OrderCategory")
+pt$addRowDataGroups("CustomerCode")
+pt$defineCalculation(calculationName = "Total", summariseExpression = "n()")
+pt$sortRowDataGroups(orderBy = "calculation")
+pt$evaluatePivot()
+pt_df <-pt$asDataFrame()
+pt_df
+pt_df$Order_Percentage <- 100*pt_df$Order/pt_df$Total
+pt_df
+```
+
+## Bar Graph Order Category NEW
+```{r}
+ggplot(data = RawDataBoth) + geom_bar(mapping=aes(x=CountryName, fill = CountryName)) + facet_wrap(~CustOrderYear)+ theme(axis.text=element_text(angle = 90, hjust=1, vjust = 0.5))
+```
+## Cust Order Analysis by Year NEW
+```{r}
+RawDataBoth$CustOrderYrMo<-format(RawDataBoth$Custorderdate,  "%Y-%m")
+pt <-PivotTable$new()
+pt$addData(RawDataBoth)
+pt$addColumnDataGroups("CustOrderYrMo")
+pt$addRowDataGroups("CustomerCode")
+pt$defineCalculation(calculationName = "Total", summariseExpression = "n()")
+#pt$sortColumnDataGroups(sortOrder= "desc")
+pt$sortColumnDataGroups( orderBy = "value",sortOrder = "asc")
+pt$evaluatePivot()
+pt_df <-pt$asDataFrame()
+#pt$renderPivot()
+pt_df
+
+```
+
+## Item Order Analysis by Year
+```{r}
+RawDataBoth$CustOrderYrMo<-format(RawDataBoth$Custorderdate,  "%Y-%m")
+pt <-PivotTable$new()
+pt$addData(RawDataBoth)
+pt$addColumnDataGroups("CustOrderYrMo")
+pt$addRowDataGroups("ITEM_NAME")
+pt$defineCalculation(calculationName = "Total", summariseExpression = "n()")
+#pt$sortColumnDataGroups(sortOrder= "desc")
+pt$sortRowDataGroups(orderBy = "value", sortOrder = "asc")
+pt$evaluatePivot()
+pt_df <-pt$asDataFrame()
+pt_df
+
+```
+
+
+
+## Order Amount Analysis by Customer
+```{r}
+options(width=400,scipen = 100)
+pt <-PivotTable$new()
+pt$addData(RawDataBoth)
+pt$addColumnDataGroups("OrderCategory")
+pt$addRowDataGroups("CustomerCode")
+pt$defineCalculation(calculationName = "Total", summariseExpression = "sum(Amount)")
+pt$sortRowDataGroups(orderBy = "calculation")
+pt$evaluatePivot()
+pt_df <-pt$asDataFrame()
+pt_df
+pt_df
+```
+
+## Item Order Analysis by Customer
+```{r}
+pt <-PivotTable$new()
+pt$addData(RawDataBoth)
+pt$addColumnDataGroups("ITEM_NAME")
+pt$addRowDataGroups("CustomerCode")
+pt$defineCalculation(calculationName = "Total", summariseExpression = "n()")
+#pt$sortColumnDataGroups(sortOrder= "desc")
+pt$sortRowDataGroups(orderBy = "calculation")
+pt$evaluatePivot()
+pt_df <-pt$asDataFrame()
+pt_df
+```
+
+
+### Q-3 _BUILDING MACHINE LEARNING MODELS TO IDENTIFY POTENTIAL SAMPLES BEING CONVERTED INTO SALES ####
+
+
+## ML Models For the Sample to Order Coversation 
+
+#### LOGISTIC REGRESSION ######
+
+## Loading the required Libraries
+```{r}
+ # packages required
+#install.packages("aod")
+# library(aod)
+ # library(ggplot2)
+ # library(Rcpp)
+```
+
+
+## Importing the Data
+```{r}
+#library(readxl)
+
+SampleOnly <- read.csv("samples.csv")
+
+#View(SampleOnly)
+```
+
+## Modifying the variables in the Data for Logistic Regression
+```{r}
+
+SampleOnly$CustomerCode<-as.factor(SampleOnly$CustomerCode)
+SampleOnly$CountryName<-as.factor(SampleOnly$CountryName)
+SampleOnly$ITEM_NAME<-as.factor(SampleOnly$ITEM_NAME)
+SampleOnly$ShapeName<-as.factor(SampleOnly$ShapeName)
+SampleOnly$Order.Conversion <- as.factor(SampleOnly$Order.Conversion)
+
+```
+
+
+## Converting categorical variables into Numerical variables 
+```{r}
+library('fastDummies')
+
+SampleOnly <- SampleOnly[-c(3:9,20,11)]
+
+SampleData_new <- 
+  dummy_cols(SampleOnly, select_columns = c('CustomerCode','CountryName'),remove_selected_columns = TRUE)
+
+any(is.na(SampleData_new))
+```
+
+## logestic regression model 
+```{r}
+attach(SampleData_new)
+mylogit = glm(Order.Conversion ~ ., data = SampleData_new, family = "binomial")
+summary(mylogit)
+```
+
+## Balancing the Data to better fit the model 
+
+```{r}
+# attach(SampleData_new)
+summary(SampleData_new$Order.Conversion) 
+```
+
+
+## DESCISION TREES ###
+
+## Loading the Data and the related pacakges 
+```{r}
+sample_csv <- read.csv("samples.csv")
+
+library(rpart)
+library(rpart.plot)
+library(tidyverse)
+library(pivottabler)
+library(C50)
+```
+
+## Coverting the variables into desired format to input into models
+```{r}
+sample_csv$CustomerCode<-as.factor(sample_csv$CustomerCode)
+sample_csv$CountryName<-as.factor(sample_csv$CountryName)
+sample_csv$ITEM_NAME<-as.factor(sample_csv$ITEM_NAME)
+sample_csv$Hand.Tufted<-as.factor(sample_csv$Hand.Tufted)
+sample_csv$Durry<-as.factor(sample_csv$Durry)
+sample_csv$Double.Back<-as.factor(sample_csv$Double.Back)
+sample_csv$Hand.Woven<-as.factor(sample_csv$Hand.Woven)
+sample_csv$Knotted<-as.factor(sample_csv$Knotted)
+sample_csv$Jacquard<-as.factor(sample_csv$Jacquard)
+sample_csv$Handloom<-as.factor(sample_csv$Handloom)
+sample_csv$Other<-as.factor(sample_csv$Other)
+sample_csv$REC<-as.factor(sample_csv$REC)
+sample_csv$Round<-as.factor(sample_csv$Round)
+sample_csv$Square<-as.factor(sample_csv$Square)
+sample_csv$Order.Conversion<-as.factor(sample_csv$Order.Conversion)
+```
+
+## Countryname has missing values which should be converted to a dummy variable.
+## Eg There is no column for ISRAEL hence when we select "ISRAEL" in Countryname it returns missing values in the other columns. Creating dummy for all such countries
+
+## Summary of the Data ; Checking for any null values in our Data 
+```{r}
+## View(sample_csv)
+sample_csv %>% summarise_all(~ sum(is.na(.)))
+```
+
+##  Country is mentioned twice in the data. Once in columns as dummy variables and second in the CountryName column
+## However, there are 2 orders from Customer RC that were sent to 2 countries- US and Australia. Treating this as outlier as no other country has this issue.
+
+## Creating dummy variables for all
+
+## Removing Country Columns and creating new ones
+```{r}
+df2<- sample_csv[,-3:-9]
+```
+
+## Creating dummy variables for CountryName
+```{r}
+
+df2$CC<- ifelse(df2$CustomerCode == 'CC',1,0)
+df2$M1<- ifelse(df2$CustomerCode == 'M-1',1,0)
+df2$V1<- ifelse(df2$CustomerCode == 'V-1',1,0)
+df2$A9<- ifelse(df2$CustomerCode == 'A-9',1,0)
+df2$RC<- ifelse(df2$CustomerCode == 'RC',1,0)
+df2$B3<- ifelse(df2$CustomerCode == 'B-3',1,0)
+df2$C1<- ifelse(df2$CustomerCode == 'C-1',1,0)
+df2$K3<- ifelse(df2$CustomerCode == 'K-3',1,0)
+df2$PC<- ifelse(df2$CustomerCode == 'PC',1,0)
+df2$JL<- ifelse(df2$CustomerCode == 'JL',1,0)
+df2$F1<- ifelse(df2$CustomerCode == 'F-1',1,0)
+df2$F2<- ifelse(df2$CustomerCode == 'F-2',1,0)
+df2$P4<- ifelse(df2$CustomerCode == 'P-4',1,0)
+df2$P5<- ifelse(df2$CustomerCode == 'P-5',1,0)
+df2$H2<- ifelse(df2$CustomerCode == 'H-2',1,0)
+df2$PD<- ifelse(df2$CustomerCode == 'PD',1,0)
+df2$T5<- ifelse(df2$CustomerCode == 'T-5',1,0)
+df2$E2<- ifelse(df2$CustomerCode == 'E-2',1,0)
+df2$T2<- ifelse(df2$CustomerCode == 'T-2',1,0)
+df2$I2<- ifelse(df2$CustomerCode == 'I-2',1,0)
+df2$S3<- ifelse(df2$CustomerCode == 'S-3',1,0)
+df2$M2<- ifelse(df2$CustomerCode == 'M-2',1,0)
+df2$N1<- ifelse(df2$CustomerCode == 'N-1',1,0)
+df2$TGT<- ifelse(df2$CustomerCode == 'TGT',1,0)
+df2$CTS<- ifelse(df2$CustomerCode == 'CTS',1,0)
+df2$A11<- ifelse(df2$CustomerCode == 'A-11',1,0)
+df2$C2<- ifelse(df2$CustomerCode == 'C-2',1,0)
+df2$T4<- ifelse(df2$CustomerCode == 'T-4',1,0)
+df2$L5<- ifelse(df2$CustomerCode == 'L-5',1,0)
+df2$L4<- ifelse(df2$CustomerCode == 'L-4',1,0)
+df2$L3<- ifelse(df2$CustomerCode == 'L-3',1,0)
+df2$K2<- ifelse(df2$CustomerCode == 'K-2',1,0)
+df2$B2<- ifelse(df2$CustomerCode == 'B-2',1,0)
+df2$F6<- ifelse(df2$CustomerCode == 'F-6',1,0)
+
+df2$USA<- ifelse(df2$CountryName == 'USA',1,0)
+df2$INDIA<- ifelse(df2$CountryName == 'INDIA',1,0)
+df2$AUSTRALIA<- ifelse(df2$CountryName == 'AUSTRALIA',1,0)
+df2$UK<- ifelse(df2$CountryName == 'UK',1,0)
+df2$POLAND<- ifelse(df2$CountryName == 'POLAND',1,0)
+df2$BELGIUM<- ifelse(df2$CountryName == 'BELGIUM',1,0)
+df2$BRAZIL<- ifelse(df2$CountryName == 'BRAZIL',1,0)
+df2$CANADA<- ifelse(df2$CountryName == 'CANADA',1,0)
+df2$CHINA<- ifelse(df2$CountryName == 'CHINA',1,0)
+df2$ISRAEL<- ifelse(df2$CountryName == 'ISRAEL',1,0)
+df2$ITALY<- ifelse(df2$CountryName == 'ITALY',1,0)
+df2$ROMANIA<- ifelse(df2$CountryName == 'ROMANIA',1,0)
+df2$SOUTH_AFRICA<- ifelse(df2$CountryName == 'SOUTH AFRICA',1,0)
+df2$UAE<- ifelse(df2$CountryName == 'UAE',1,0)
+```
+
+## ITEM_NAME column has 169 values with "Other" value. Also, cross checked if we have multiple dummy variables for the same value.
+## These are clear hence using the dummies for ITEM_NAME created already in the data
+## Similarly validated SHAPE_NAME variable. It has 3 values and dummy variables are already created for each one.
+
+## Removing Customer Code, Country Name, ITEM Name, Shape Name - Categorical variables
+```{r}
+df2<- df2[c(-1,-2,-4,-13)]
+```
+
+## 80/20 Split of Data into Test/Train Data 
+```{r}
+indx_80<- sample(2, nrow(df2), replace = TRUE, prob = c(0.8, 0.2))
+
+nrow(df2)
+nrow(indx_80)
+train_80<- df2[indx_80==1,]
+nrow(train_80)
+
+test_80<- df2[indx_80==2,]
+
+nrow(test_80)
+
+nrow(train_80)/nrow(df2)
+```
+
+## DECISION TREE 
+```{r}
+attach(df2)
+myFormula = Order.Conversion ~ .
+mytree_80 <- rpart(myFormula, data = train_80)
+#print(mytree_80)
+rpart.plot(mytree_80)
+
+```
+
+## Evaluating the Decision Tree model 
+```{r}
+pred_train_80<-predict(mytree_80, data = train_80, type = "class") # use without class to see the probability
+
+# now compare this predict class
+
+mean(train_80$Order.Conversion !=pred_train_80)
+
+```
+## Training Error 9.7%
+
+## Now on Test instances - test error 
+```{r}
+pred_test_80<-predict(mytree_80, newdata = test_80, type = "class")
+mean(test_80$Order.Conversion != pred_test_80)
+
+```
+## Test error is 10.6%
+
+## Refining the Decision Tree parameters 
+```{r}
+mytree_80$cptable
+
+mytree_80_2<- rpart(myFormula, data = train_80, parms = list(split = "gini"), 
+                    control = rpart.control(minsplit = 10, minbucket = 10, cp = -1))
+```
+
+## Training Error
+```{r}
+pred_train_80_2 <- predict(mytree_80_2, data = train_80, type = "class")
+mean(train_80$Order.Conversion!=pred_train_80_2)
+```
+
+## Test Error
+```{r}
+pred_test_80_2<-predict(mytree_80_2, newdata = test_80, type = "class")
+mean(test_80$Order.Conversion != pred_test_80_2)
+```
+
+## The Test and Train both imporved by tuning out Decision tree parameters 
+## Tuned Decision Tree
+```{r}
+rpart.plot(mytree_80_2)
+## mytree_80_2
+```
+
+#### Running the DECISION TREE ON BALANCED DATA #####
+
+## Balancing the un-normalized data for running the decision tree models
+```{r}
+ library(ROSE)
+balanced_df2<- ovun.sample(Order.Conversion~., data = df2, method = "over", N = 9300)$data
+summary(balanced_df2$Order.Conversion)
+```
+## 80/20 Split of Data into Test/Train Data
+```{r}
+attach(balanced_df2)
+indx_80<- sample(2, nrow(balanced_df2), replace = TRUE, prob = c(0.8, 0.2))
+
+nrow(balanced_df2)
+nrow(indx_80)
+train_80<- balanced_df2[indx_80==1,]
+nrow(train_80)
+
+test_80<- balanced_df2[indx_80==2,]
+
+nrow(test_80)
+
+nrow(train_80)/nrow(balanced_df2)
+
+```
+
+## Decision Tree on Balanced Data
+```{r}
+myFormula = Order.Conversion ~ .
+mytree_80 <- rpart(myFormula, data = train_80)
+##print(mytree_80)
+rpart.plot(mytree_80)
+```
+
+## Training Error of the Tree 
+```{r}
+pred_train_80<-predict(mytree_80, data = train_80, type = "class") # use without class to see the probability
+#pred_train_80
+# now compare this predict class
+#pred_train_80
+mean(train_80$Order.Conversion !=pred_train_80)
+```
+## Test Error of the Tree 
+```{r}
+#### Now on test instances:
+pred_test_80<-predict(mytree_80, newdata = test_80, type = "class")
+mean(test_80$Order.Conversion != pred_test_80)
+```
+
+## Refining the decision Tree parameteres 
+```{r}
+mytree_80$cptable
+
+mytree_80_2<- rpart(myFormula, data = train_80, parms = list(split = "gini"), 
+                    control = rpart.control(minsplit = 10, minbucket = 10, cp = 0.01))
+```
+## Training Error 
+```{r}
+pred_train_80_2 <- predict(mytree_80_2, data = train_80, type = "class")
+mean(train_80$Order.Conversion!=pred_train_80_2)
+```
+## Test Error 
+```{r}
+pred_test_80_2<-predict(mytree_80_2, newdata = test_80, type = "class")
+mean(test_80$Order.Conversion != pred_test_80_2)
+```
+## Decsison Tree on Balanced Data
+```{r}
+rpart.plot(mytree_80_2)
+```
+## The Test/Train Error increased with using Balanced Data, the Balanced Data model might be good at predicting only calss of Data but performs poor overall 
+
+#### NERUAL NETWORKS  ######
+
+## normalizing all numerical variables ##
+```{r}
+myscale <- function(x)
+{
+  (x - min(x))/(max(x)- min(x))
+}
+library(dplyr)
+df3 <- df2 %>% mutate_if(is.numeric, myscale) 
+# if numerical variable then apply myscale function
+
+## View(df3)
+## summary(df3)
+```
+
+## Partitioning into test and train
+# ####################### 80/20 split ###########################
+```{r}
+indx_80_NN<- sample(2, nrow(df3), replace = TRUE, prob = c(0.8, 0.2))
+
+nrow(df3)
+nrow(indx_80_NN)
+train_80_NN<- df3[indx_80_NN==1,]
+nrow(train_80_NN)
+test_80_NN<- df3[indx_80_NN==2,]
+nrow(test_80_NN)
+
+nrow(train_80_NN)/nrow(df3)
+```
+## Neural Network Model
+```{r}
+library(nnet)
+ attach(df3)
+
+nnModel<- nnet(Order.Conversion ~., data = train_80_NN, linout = FALSE, size = 10, decay = 0.05, maxit = 1000)
+summary(nnModel)
+View(train_80_NN)
+```
+
+## PLotting the Neural Network 
+```{r}
+#install.packages("NeuralNetTools")
+ library(NeuralNetTools)
+plotnet(nnModel)
+```
+
+## Confusion Matrix
+```{r}
+nn.preds.class <- as.factor(predict(nnModel, test_80_NN, type = "class"))
+#nn.preds.class
+table(nn.preds.class, test_80_NN$Order.Conversion)
+```
+## For a marketing solicitation use case, we can send marketing to users that have not converted as well. Hence false positives can be high
+
+## Recall can be high at the expense of Precision
+
+## Evaluation Metrics from the Confusion Matrix
+```{r}
+CM <- table(nn.preds.class, test_80_NN$Order.Conversion)
+
+error_metric = function(CM)
+{
+  TN = CM[1,1]
+  TP = CM[2,2]
+  FN = CM[1,2]
+  FP = CM[2,1]
+  recall = (TP)/(TP + FN)
+  precision = (TP)/(TP+ FP)
+  falsePositiveRate = (FP)/(FP + TN)
+  falseNegativeRate = (FN)/(FN + TP)
+  error = (FP + FN)/(TP + TN + FP + FN)
+  modelPerf<- list("precision" = precision,
+                   "recall" = recall,
+                   "falsePositiveRate" = falsePositiveRate,
+                   "falseNegativeRate" = falseNegativeRate,
+                   "error" = error)
+  return(modelPerf)
+}
+
+outPutlist <- error_metric(CM)
+
+library(plyr)
+df4<- ldply(outPutlist, data.frame)
+setNames(df4, c("","Values"))
+
+```
+
+## validation set for decay parameter
+##validation set is derived from the validation set
+```{r}
+set.seed(213)
+indx <- sample(2, nrow(train_80_NN), replace = TRUE, prob = c(0.5,0.5))
+train2 <- train_80_NN[indx==1,]
+validation <- train_80_NN[indx==2, ]
+
+err<- vector("numeric", 100)
+d<- seq(0.0001, 1, length.out = 100)
+k = 1
+for(i in d)
+{
+  mymodel <- nnet(Order.Conversion ~., data = train2, size = 10, decay = i, maxit = 1000)
+  pred.class<- predict(mymodel, newdata = validation, type = "class")
+  err[k]<- mean(pred.class != validation$Order.Conversion)
+  k<- k+1
+}
+
+```
+
+## How model performs for different values of d
+```{r}
+plot(d, err, type = "l")
+```
+## As d increases first the error goes down then the error goes up again
+## hence the optimum value of decay is 0.019 to 0.03
+
+
+## BALANCING DATA ##
+```{r}
+summary(df3$Order.Conversion)
+# Total instances = 5820
+#install.packages("smotefamily")
+library("smotefamily")
+help("smotefamily")
+#install.packages("ROSE")
+#library("ROSE")
+
+balanced_df3<- ovun.sample(Order.Conversion~., data = df3, method = "over", N = 9300)$data
+summary(balanced_df3$Order.Conversion)
+```
+## Now using balanced_df3 for running the neural network
+```{r}
+indx_80_NN<- sample(2, nrow(balanced_df3), replace = TRUE, prob = c(0.8, 0.2))
+
+nrow(balanced_df3)
+nrow(indx_80_NN)
+train_80_NN<- balanced_df3[indx_80_NN==1,]
+nrow(train_80_NN)
+test_80_NN<- balanced_df3[indx_80_NN==2,]
+nrow(test_80_NN)
+
+nrow(train_80_NN)/nrow(balanced_df3)
+
+```
+## Neural Network Model
+```{r}
+library(nnet)
+#attach(balanced_df3)
+#View(balanced_df3)
+nnModel<- nnet(Order.Conversion ~., data = train_80_NN, linout = FALSE, size = 10, decay = 0.05, maxit = 1000)
+summary(nnModel)
+
+```
+
+## Ploting the Nerual Network
+```{r}
+library(NeuralNetTools)
+plotnet(nnModel)
+```
+## Confusion Matrix
+```{r}
+nn.preds.class <- as.factor(predict(nnModel, test_80_NN, type = "class"))
+#nn.preds.class
+table(nn.preds.class, test_80_NN$Order.Conversion)
+```
+## For a marketing solicitation use case, we can send marketing to users that have not converted as well. Hence false positives can be high
+## Recall can be high at the expense of Precision
+
+## 
+```{r}
+CM <- table(nn.preds.class, test_80_NN$Order.Conversion)
+
+error_metric = function(CM)
+{
+  TN = CM[1,1]
+  TP = CM[2,2]
+  FN = CM[1,2]
+  FP = CM[2,1]
+  recall = (TP)/(TP + FN)
+  precision = (TP)/(TP+ FP)
+  falsePositiveRate = (FP)/(FP + TN)
+  falseNegativeRate = (FN)/(FN + TP)
+  error = (FP + FN)/(TP + TN + FP + FN)
+  modelPerf<- list("precision" = precision,
+                   "recall" = recall,
+                   "falsePositiveRate" = falsePositiveRate,
+                   "falseNegativeRate" = falseNegativeRate,
+                   "error" = error)
+  return(modelPerf)
+}
+
+outPutlist <- error_metric(CM)
+
+df4<- ldply(outPutlist, data.frame)
+setNames(df4, c("","Values"))
+```
+
+## validation set for decay parameter
+## validation set is derived from the validation set
+```{r}
+set.seed(213)
+indx <- sample(2, nrow(train_80_NN), replace = TRUE, prob = c(0.5,0.5))
+train2 <- train_80_NN[indx==1,]
+validation <- train_80_NN[indx==2, ]
+
+err<- vector("numeric", 100)
+d<- seq(0.0001, 1, length.out = 100)
+k = 1
+for(i in d)
+{
+  mymodel <- nnet(Order.Conversion ~., data = train2, size = 10, decay = i, maxit = 1000)
+  pred.class<- predict(mymodel, newdata = validation, type = "class")
+  err[k]<- mean(pred.class != validation$Order.Conversion)
+  k<- k+1
+}
+
+```
+
+## How model performs for different values of d
+```{r}
+plot(d, err, type = "l")
+```
+
+##### RANDOM FOREST #######
+```{r}
+library(rpart)
+library(rpart.plot)
+library(tidyverse)
+library(pivottabler)
+```
+
+
+```{r}
+data <- read.csv("samples.csv")
+```
+
+## Converting target variable into factor 
+## Kepping only the categorical variables and the target varible (removing the dummy variables for categorical variables in the dataset)
+```{r}
+data <- data[-c(3:9,12:19,21:23)]
+data$Order.Conversion <- as.factor(data$Order.Conversion)
+data$CustomerCode <- as.factor(data$CustomerCode)
+data$CountryName <- as.factor(data$CountryName)
+data$ITEM_NAME <- as.factor(data$ITEM_NAME)
+data$ShapeName <- as.factor(data$ShapeName)
+```
+
+## Random Forest on Un-Balanced Data 
+
+```{r}
+ library(randomForest)
+ntree <- 100
+rf_ub <- randomForest(Order.Conversion ~ .,data= data, ntree = ntree, mtry= sqrt(ncol(data)-1), proximity = T, importance = T)
+
+print(rf_ub)
+```
+
+
+```{r}
+varImpPlot(rf_ub)
+```
+
+```{r}
+attributes(rf_ub)
+```
+
+```{r}
+plot(rf_ub)
+```
+## Error dosen't improve after 100 trees so we can fix ntree parameter at 100
+
+## Predicting the best value of mtry 
+```{r}
+indx <- sample(2, nrow(data), replace = T, prob= c(0.7,0.3))
+Train <- data[indx == 1,]
+Validation <- data[indx == 2, ]
+ 
+pr.err <- c()
+for(mt in seq(1, ncol(data)-1))
+{
+  rf <- randomForest(Order.Conversion ~ .,data= data, ntree = ntree, mtry = mt)
+  pred <- predict(rf, newdata = Validation, type = "class")
+  pr.err<- c(pr.err, mean(pred != Validation$Order.Conversion))
+}
+
+bestmtry <- which.min(pr.err)
+
+```
+
+```{r}
+t <- tuneRF(data[,-7],data[,7],stepFactor = 0.5,plot = TRUE, ntreeTry = ntree,trace = TRUE,improve = 0.05)
+```
+
+
+## Best mtry value is 2 which is already being used in the RandomForest
+
+```{r}
+ library(caret)
+confusionMatrix(rf_ub$predicted,data$Order.Conversion,positive = "1")
+```
+## Evaluation Charts
+```{r}
+library(ROCR)
+pred <- prediction(rf_ub$votes[, 2], data$Order.Conversion)
+
+# Gain Chart
+perf <- performance(pred, "tpr", "rpp")
+plot(perf)
+```
+## Gain Chart - We can reach 80% of our possibele customers i.e who place orders after sending a sample just by targeting 20% of our total customers and can avoid sending more samples to save our capital and increase profits.
+
+
+# Response Chart
+```{r}
+
+perf <- performance(pred, "ppv", "rpp")
+plot(perf)
+```
+# Lift Chart
+```{r}
+ 
+perf <- performance(pred, "lift", "rpp")
+plot(perf)
+
+```
+## Lift Chart - We can expect 4x more potential customers through our model than randomly selecting our customer to send samples.
+
+
+# ROC Curve
+```{r}
+
+perf <- performance(pred, "tpr", "fpr")
+plot(perf)
+
+
+```
+## Area under the curve
+```{r}
+# auc
+auc <- performance(pred, "auc")
+auc
+auc <- unlist(slot(auc, "y.values"))
+auc
+```
+
+## ADABOOST - Adaptive Boosting
+
+```{r}
+#install.packages("adabag")
+library(adabag)
+library(caret)
+
+```
+
+## Split Data into test and train data 
+```{r}
+indx <- sample(2, nrow(data), replace = TRUE, prob = c(0.9, 0.1))
+train <- data[indx==1,]
+test <- data[indx==2,]
+```
+
+## Applying the boosting function to the train data 
+```{r}
+model = boosting(Order.Conversion~., data=train, boos=TRUE, mfinal=50)
+print(model)
+```
+
+## Model properties 
+```{r}
+print(names(model))
+```
+
+```{r}
+print(model$trees[1])
+```
+
+```{r}
+pred = predict(model, test)
+
+print(pred$confusion)
+```
+
+```{r}
+print(pred$error)
+```
+## Bossting with Cross-Validation 
+
+```{r}
+cvmodel = boosting.cv(Order.Conversion ~., data = data, boos = TRUE, mfinal = 10, v =5)
+```
+
+```{r}
+print(cvmodel[-1])
+```
+
+
+## Balancing the data 
+
+```{r}
+summary(data$Order.Conversion)
+```
+## Unbalanced Data with 4 times more observtions in "0" i.e. not converted than "1" converted in our data 
+
+```{r}
+## install.packages("ROSE")
+
+library(ROSE)
+
+balanced.data <- ovun.sample(Order.Conversion ~ ., data = data, method = "over", N = 9000)$data
+
+summary(balanced.data$Order.Conversion)
+```
+## Balanced our data with Over sampling technique 
+
+
+## Using the Balanced Data for Random Forest 
+
+## Random Forest on Balanced Data 
+
+```{r}
+library(randomForest)
+ntree <- 100
+rf_b <- randomForest(Order.Conversion ~ .,data= balanced.data, ntree = ntree, mtry= sqrt(ncol(balanced.data)-1), proximity = T, importance = T)
+
+print(rf_b)
+```
+## Although we improved our class 1 error from 27% to 17% we increased the overall model error from 7% to 11%
+
+```{r}
+varImpPlot(rf_b)
+
+```
+## Our Importanat variables remian the same 
+
+## 
+```{r}
+plot(rf_b)
+```
+
+## Error dosen't improve after 100 trees so we can fix ntree parameter at 100
+
+## Predicting the best value of mtry 
+```{r}
+indx <- sample(2, nrow(balanced.data), replace = T, prob= c(0.7,0.3))
+Train <- balanced.data[indx == 1,]
+Validation <- balanced.data[indx == 2, ]
+ 
+pr.err <- c()
+for(mt in seq(1, ncol(balanced.data)-1))
+{
+  rf <- randomForest(Order.Conversion ~ .,data= balanced.data, ntree = ntree, mtry = mt)
+  pred <- predict(rf, newdata = Validation, type = "class")
+  pr.err<- c(pr.err, mean(pred != Validation$Order.Conversion))
+}
+
+bestmtry <- which.min(pr.err)
+
+```
+
+```{r}
+t <- tuneRF(balanced.data[,-7],balanced.data[,7],stepFactor = 0.5,plot = TRUE, ntreeTry = ntree,trace = TRUE,improve = 0.05)
+```
+
+## OUr best mtry value is 4 so we will replace the value and run the model again 
+
+## Running the model with tuned parameters 
+```{r}
+ntree <- 100
+rf_b_tuned <- randomForest(Order.Conversion ~ .,data= balanced.data, ntree = ntree, mtry= bestmtry, proximity = T, importance = T)
+
+print(rf_b_tuned)
+```
+
+## We have decreased our overall and class 1 error rate but class 0 has increased a bit
+
+## Evaluating our tuned Random forest model on Blanced data 
+
+```{r}
+varImpPlot(rf_b_tuned)
+```
+## The important Variables did not change much 
+
+## Evaluatint the tuned Random FOrest on balanced data 
+
+```{r}
+library(caret)
+confusionMatrix(rf_b_tuned$predicted,balanced.data$Order.Conversion,positive = "1")
+```
+## Evalutation charts 
+```{r}
+library(ROCR)
+pred <- prediction(rf_b_tuned$votes[, 2], balanced.data$Order.Conversion)
+
+# Gain Chart
+perf <- performance(pred, "tpr", "rpp")
+plot(perf)
+```
+## Gain Chart - With our new model we have to target 40% of our total customers as opposed to 20% from our previous model in order to reach 80% of our potential customers.
+
+## Response chart 
+```{r}
+perf <- performance(pred, "ppv", "rpp")
+plot(perf)
+```
+## Lift Chart 
+```{r}
+perf <- performance(pred, "lift", "rpp")
+plot(perf)
+
+```
+## Our lift has increased with the new model compared to model run on unbalances where the model was perfomring 4x times better than a random model , the new model is performing 5x time better than a random model 
+
+## ROC Curve
+```{r}
+perf <- performance(pred, "tpr", "fpr")
+plot(perf)
+
+```
+
+## AUC - area under the curve
+
+```{r}
+# auc
+auc <- performance(pred, "auc")
+auc
+auc <- unlist(slot(auc, "y.values"))
+auc
+```
+## The auc has also increased from 0.89 to 0.91, hence our new model is better performing that the previous model 
+
+## Boosting with Balanced data 
+
+## Split Data into test and train data 
+```{r}
+indx_b <- sample(2, nrow(balanced.data), replace = TRUE, prob = c(0.9, 0.1))
+train_b <- balanced.data[indx==1,]
+test_b <- balanced.data[indx==2,]
+```
+
+## Applying the boosting function to the train data 
+```{r}
+model_b = boosting(Order.Conversion~., data=train_b, boos=TRUE, mfinal=50)
+```
+
+## Model properties 
+```{r}
+print(names(model_b))
+```
+
+```{r}
+print(model_b$trees[1])
+```
+
+```{r}
+pred_b = predict(model_b, test)
+
+print(pred_b$confusion)
+```
+
+```{r}
+print(pred_b$error)
+```
+## Bossting with Cross-Validation 
+
+```{r}
+cvmodel_b = boosting.cv(Order.Conversion ~., data = balanced.data, boos = TRUE, mfinal = 10, v =5)
+```
+
+```{r}
+print(cvmodel_b[-1])
+```
+## The error of Bossting model increased with Balanced data, possible that we are overfitting our model with the balanced data
+
+
+## K-Means Clusterin ###
+
+## Saved the clustering file into another csv
+## Importing the Data for clustering 
+```{r}
+library(readxl)
+clustering <- read_excel("carpets.xlsx", sheet = "Data for Clustering")
+##View(clustering)
+##summary(clustering)
+```
+
+## Customer is factorial all else are numeric
+```{r}
+attach(clustering)
+sum(is.na(clustering))
+clustering <- na.omit(clustering)
+```
+## first column is categorical hence 
+```{r}
+library(dplyr)
+clustering2 <- clustering %>% mutate_if(is.numeric, myscale)
+##View(clustering2)
+```
+
+## change first column to index
+```{r}
+clustering2 <- clustering2 %>% remove_rownames %>% column_to_rownames(var="Customer")
+```
+
+## K-Means Clustering 
+```{r}
+km2<-kmeans(clustering2, centers = 2, nstart = 1000)
+#km2
+
+km2<-kmeans(clustering2, centers = 2, nstart = 1000)
+km3<-kmeans(clustering2, centers = 3, nstart = 1000)
+km4<-kmeans(clustering2, centers = 4, nstart = 1000)
+km5<-kmeans(clustering2, centers = 5, nstart = 1000)
+km6<-kmeans(clustering2, centers = 6, nstart = 1000)
+km7<-kmeans(clustering2, centers = 7, nstart = 1000)
+library(factoextra)
+fp2<- fviz_cluster(km2, data = clustering2, geom = "point") + ggtitle("k=2")
+fp3<- fviz_cluster(km3, data = clustering2, geom = "point") + ggtitle("k=3")
+fp4<- fviz_cluster(km4, data = clustering2, geom = "point") + ggtitle("k=4")
+fp5<- fviz_cluster(km5, data = clustering2, geom = "point") + ggtitle("k=5")
+fp6<- fviz_cluster(km6, data = clustering2, geom = "point") + ggtitle("k=6")
+fp7<- fviz_cluster(km7, data = clustering2, geom = "point") + ggtitle("k=7")
+
+library(gridExtra)
+grid.arrange(fp2,fp3,fp4,fp5,fp6,fp7, nrow = 3)
+```
+
+## Finding the Optimum K-value 
+```{r}
+set.seed(123)
+#total wss in the entire dataset
+wss <- function(k) {
+  kmeans(clustering2, centers = k, nstart = 100)$tot.withinss
+}
+# Compute and plot wss for k = 1 to k = 15
+k.values <- 1:15
+```
+
+## extract wss for 2-15 clusters
+```{r}
+library(tidyverse)
+wss_values <- map_dbl(k.values, wss)
+plot(k.values, wss_values,
+     type="b", pch = 19, frame = FALSE,
+     xlab="Number of clusters",
+     ylab="Total within-clusters sum of squares")
+```
+
+## Scree plot using defined package
+```{r}
+set.seed(123)
+fviz_nbclust(clustering2, kmeans, method = "wss")
+
+```
+
+## ### Silhoutte Measure ##
+
+# function to compute average silhouette for k clusters
+```{r}
+library(cluster)
+avgsil <- function(k) {
+  kmModel <- kmeans(clustering2, centers = k, nstart = 100)
+  ss <- silhouette(kmModel$cluster, dist(clustering2))
+  mean(ss[, 3])
+}
+# Compute and plot wss for k = 2 to k = 15
+k.values <- 2:15
+# extract avg silhouette for 2-15 clusters
+avgsil_values <- map_dbl(k.values, avgsil)
+plot(k.values, avgsil_values,
+     type = "b", pch = 19, frame = FALSE,
+     xlab = "Number of clusters",
+     ylab = "Average Silhouettes")
+
+
+```
+
+## 
+```{r}
+avgsil(5)
+```
+## ## Silhouette using fviz ##
+```{r}
+fviz_nbclust(clustering2, kmeans, method = "silhouette")
+```
+
+## ### finalizing k ##
+```{r}
+fviz_cluster(km4,data = clustering2)
+```
+
+```{r}
+km4
+```
+
+
+```{r}
+clustering2 %>%
+  mutate(Cluster = km4$cluster) %>%
+  group_by(Cluster) %>%
+  summarise_all("mean")
+```
+
+
+## Hierarchiral Clustering ###
+
+## Importing the clustering data 
+```{r}
+library(readxl)
+data_clustering <- read_excel("carpets.xlsx", sheet = "Data for Clustering")
+any(is.na(data_clustering))
+library(tidyverse)
+data_clustering <- data_clustering %>% remove_rownames %>% column_to_rownames(var="Customer")
+```
+## Normalizing data with min/max transformation 
+```{r}
+myscale <- function(x) {(x-min(x)/max(x)-min(x))}
+
+df_clustering <- data_clustering %>% mutate_if(is.numeric,myscale)
+```
+
+
+## Clustering with hclust
+
+```{r}
+distance <- dist(df_clustering,method = "euclidean")
+
+hcomplete <- hclust(distance,method = "complete")
+plot(hcomplete,cex=0.6,hang = -2,main = "Dendrogram for hclust - Complete")
+```
+
+```{r}
+hsingle <- hclust(distance, method = "single")
+plot(hsingle, cex = 0.7, hang = -2, main = "Dendrogram for hclust - single")
+```
+
+## Cutting the Dendograms into clusters 
+```{r}
+clusters <- cutree(hcomplete, k =4)
+table(clusters)
+```
+
+## Plotting the cluster Dendogram 
+```{r}
+plot(hcomplete, cex = 0.6)
+rect.hclust(hcomplete, k =4, border = 2:8)
+
+```
+## Visualizing the results in Sctter plot 
+```{r}
+install.packages("factoextra")
+library(factoextra)
+
+fviz_cluster(list(data = df_clustering, cluster = clusters))
+```
+
+## The 3 clusters with less number of customers segeented into them are all from USA, although we have some USA customers in the bigger cluster, we have some USA customers set-out from the rest from thier ordering habits 
+
+## Clustering with Agnes Function 
+
+```{r}
+library(cluster)
+hagnes <- agnes(df_clustering, method = "complete")
+hagnes$ac
+```
+
+## The ac values is very close "1" which suggests a very strong clustering structure
+
+## Selecting the best method to compute with the higest ac value 
+```{r}
+m <- c( "average", "single", "complete", "ward")
+names(m) <- c( "average", "single", "complete", "ward")
+# function to compute coefficient
+ac <- function(x) {
+agnes(df_clustering, method = x)$ac
+}
+library(purrr)
+map_dbl(m, ac)
+
+```
+## All the methods have very similar ac value with Ward being the higest 
+
+## Selecting the Ward method to go forward with our Clustering ; plotting the Dendogram uny
+```{r}
+hagnesw <- agnes(df_clustering, method = "ward")
+
+pltree(hagnesw , cex = 0.6, hang = -2, main = "Dendrogram of agnes")
+```
+
+## Finding the optimal number of clusters 
+
+```{r}
+fviz_nbclust(df_clustering, FUN = hcut, method = "wss")
+```
+
+```{r}
+fviz_nbclust(df_clustering, FUN = hcut, method = "silhouette")
+```
+## Cutting the Dendogram into clusters with k=4 
+```{r}
+clustersh_4 <- cutree(as.hclust(hagnesw), k = 4)
+table(clustersh_4)
+```
+
+## PLotting the clusters 
+```{r}
+fviz_cluster(list(data = df_clustering, cluster = clustersh_4))
+```
+
+## The clusters are not too different from the clusters made from hclust function other than a few of the customers being put in different cluster than the big cluster 
+
+## Cutting the Dendogram with clusters k=2
+```{r}
+clustersh_2 <- cutree(as.hclust(hagnesw), k = 2)
+table(clustersh_2)
+```
+
+## Plotting the clusters 
+```{r}
+fviz_cluster(list(data = df_clustering, cluster = clustersh_2))
+```
+
+## The clustering is not very insightfull in business terms with only two clusters 
+## TGT is the customer with the higest sales of 11.3M accounting to 36% of the total sales and only placed orders of the hand tuffed carpet type so we can see why it is placed in a different cluster than every other customer 
+
+## Descriptive Ananlysis on the clusters formed - clusters from hclust function and clustersh_4 from agnes function 
+
+## Clusters from hclust function 
+```{r}
+df_clustering %>%
+mutate(Cluster = clusters) %>%
+group_by(Cluster) %>%
+summarise_all("mean")
+```
+
+## Clusters from agnes function of 4 clusters 
+```{r}
+df_clustering %>%
+mutate(Cluster = clustersh_4) %>%
+group_by(Cluster) %>%
+summarise_all("mean")
+```
+
+## Clusters from agnes function of 2 clusters 
+```{r}
+df_clustering %>%
+mutate(Cluster = clustersh_2) %>%
+group_by(Cluster) %>%
+summarise_all("mean")
+```
+
+## Different culstering can be used in different business contexts; the clusters of 4 are very similar to each other even when formulated by different algorithms
+## when we need two different groups based on a particular quantity we can refer to the clustering of 2 and decide which has more order power for a certain product and target them for marketing for a new prodcut in that segment or send samples
+## we can refer to clusters of 4 when we need much more refined or granulated list of customers according to thier order history for target marketing 
+
+## #### Collaborative Filtering ####
+
+```{r}
+data_rec<-read.csv(file="recc.csv")
+View(data_rec)
+data_rec2<-data_rec[,-1]
+hist(as.vector(as.matrix(data_rec2)), main = "Distribution of Customer Orders",
+     col = "yellow", xlab = "Orders")
+
+```
+## Normalizing values
+```{r}
+myscale <- function(x)
+{
+  (x - min(x))/(max(x)- min(x))
+}
+library(dplyr)
+df7 <- data_rec2 %>% mutate_if(is.numeric, myscale)
+```
+
+## 
+```{r}
+#install.packages("psych")
+#library(psych)
+#corPlot(data_rec2)
+
+```
+## 
+```{r}
+library(corrplot)
+a<-cor(df7)
+colnames(a) <- c('H-2','P-5','M-1','A-9','C-2','JL','N-1','T-5','C-1','T-2','I-2','PD','L-5','M-2','RC','P-4','T-4','PC','A-11','CC')
+rownames(a) <- c('H-2','P-5','M-1','A-9','C-2','JL','N-1','T-5','C-1','T-2','I-2','PD','L-5','M-2','RC','P-4','T-4','PC','A-11','CC')
+corrplot(a)
+```
+
+## # There is high similarity in customers T-2 and C-2, I-2 and M-1, C-1 and M-1
+# Hence we will be reccomending NAVY items to T-2 and Double Back items to C-2
